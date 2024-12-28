@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+import Config
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -11,12 +12,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
 # Set up the WebDriver Service
-driver_path = "chromedriver.exe"  # Replace with your ChromeDriver path
+driver_path = Config.driver_path
 service = Service(driver_path) 
 driver = webdriver.Chrome(service=service)  # Initialize the driver with the service
 
 # Read Excel data
-excel_file = "DOC-20240330-WA0009.xlsx"  # Path to your Excel file
+excel_file = Config.excel_file
 data = pd.read_excel(excel_file)  # Read the Excel file, assuming the second row is the header
 data.columns = data.columns.str.strip()  # Remove any whitespace around column names
 # print(data.columns)  # Debug: Verify column names
@@ -28,8 +29,8 @@ def fill_form_from_excel():
     time.sleep(2)  # Allow page to load
     
     # Log in to the system
-    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("280103006")  # Enter email
-    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("280103006-Mpk")  # Enter password
+    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input").send_keys(Config.Username)  
+    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input").send_keys(Config.Password)  # Enter password
     driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[3]/div/button").click()  # Click login button
     driver.maximize_window()
     time.sleep(10)  # Wait for login to complete
@@ -340,8 +341,7 @@ def fill_form_from_excel():
             actions = ActionChains(driver)
             actions.move_to_element(Qualification).perform()
 
-            
-            # driver.execute_script("arguments[0].click();", Summit)
+            # driver.execute_script("arguments[0].click();", Summit) 
 
             driver.execute_script("window.scrollTo(0, 0);")
             # Wait before moving to the next record
@@ -351,4 +351,7 @@ def fill_form_from_excel():
     driver.quit()
 
 if __name__ == "__main__":
-    fill_form_from_excel()
+    try:
+        fill_form_from_excel()
+    except Exception as e:
+        print(f"Error: {e}")
