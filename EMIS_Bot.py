@@ -28,8 +28,8 @@ def fill_form_from_excel():
     time.sleep(2)  # Allow page to load
     
     # Log in to the system
-    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("280103006")  # Enter email
-    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("280103006-Mpk")  # Enter password
+    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("Username")  # Enter email
+    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("password")  # Enter password
     driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[3]/div/button").click()  # Click login button
     driver.maximize_window()
     time.sleep(10)  # Wait for login to complete
