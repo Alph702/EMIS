@@ -28,8 +28,8 @@ def fill_form_from_excel():
     time.sleep(2)  # Allow page to load
     
     # Log in to the system
-    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("Username")  # Enter email
-    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("password")  # Enter password
+    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("280103006")  # Enter email
+    driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input").send_keys("280103006-Mpk")  # Enter password
     driver.find_element(By.XPATH, "/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[3]/div/button").click()  # Click login button
     driver.maximize_window()
     time.sleep(10)  # Wait for login to complete
@@ -60,6 +60,8 @@ def fill_form_from_excel():
             desired_option.click()
 
             da =  driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/input")
+            actions = ActionChains(driver)
+            actions.move_to_element(da).perform()
             da.clear()
             timestamp = pd.Timestamp(f'{row['Admission Date']}')
             formatted_date = timestamp.strftime('%m/%d/%Y')
@@ -70,6 +72,8 @@ def fill_form_from_excel():
             gr.send_keys(row["GR NO"])
 
             dropdownca = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-2")))
+            actions = ActionChains(driver)
+            actions.move_to_element(dropdownca).perform()
             dropdownca.click()
 
             # Wait for the dropdown options to appear and select one by visible text
@@ -80,6 +84,8 @@ def fill_form_from_excel():
             driver.execute_script("arguments[0].click();", desired_option)
 
             dropdowncc = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-4")))
+            actions = ActionChains(driver)
+            actions.move_to_element(dropdowncc).perform()
             dropdowncc.click()
 
             # Wait for the dropdown options to appear and select one by visible text
@@ -102,6 +108,8 @@ def fill_form_from_excel():
             driver.execute_script("arguments[0].click();", desired_option)
 
             dropdownm = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-8")))
+            actions = ActionChains(driver)
+            actions.move_to_element(dropdownm).perform()
             dropdownm.click()
 
             desired_option = wait.until(EC.element_to_be_clickable((
@@ -303,9 +311,10 @@ def fill_form_from_excel():
             Cnic.clear()
             Cnic.send_keys(row["CNIC"])
 
-            Mobile = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[2]/div[2]/mat-form-field/div/div[1]/div[3]/input")
+            Mobile = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[3]/div[2]/mat-form-field/div/div[1]/div[3]/input")
             Mobile.clear()
-            Mobile.send_keys(row["Mobile No"])
+            if str(row["Mobile No"]) != 'nan':
+                Mobile.send_keys(row["Mobile No"])
 
             if row['Qualification'] == "Primary":
                 row['Qualification'] = "Matriculation"
@@ -330,9 +339,10 @@ def fill_form_from_excel():
             Summit = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/footer/div/div/button[1]")
             actions = ActionChains(driver)
             actions.move_to_element(Qualification).perform()
+
+            
             # driver.execute_script("arguments[0].click();", Summit)
 
-            time.sleep(2)
             driver.execute_script("window.scrollTo(0, 0);")
             # Wait before moving to the next record
             time.sleep(0.5)
