@@ -49,13 +49,15 @@ This script automates the process of filling out student enrollment forms on the
 
 ---
 
-### How to Run
-1. Open a terminal or command prompt.
-2. Navigate to the directory containing the script.
-3. Run the script:
-   ```bash
-   python EMIS_Bot.py
-   ```
+### Executable Version
+An executable version of the script has been created for easier use:
+- **Executable File**: `EMIS_Bot.exe`
+
+### How to Run the Executable
+1. Navigate to the `dist` directory where the executable is located.
+2. Double-click on `EMIS_Bot.exe` to run the bot.
+3. Ensure the required Excel file (`Excel_File.xlsx`) and the `Photos` directory are in the same location as the executable.
+4. Follow the on-screen instructions to complete the enrollment process.
 
 ---
 
