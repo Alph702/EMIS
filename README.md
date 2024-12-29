@@ -8,7 +8,7 @@ This script automates the process of filling out student enrollment forms on the
 ---
 
 ### Features
-- Reads data from an Excel file (`DOC-20240330-WA0009.xlsx`).
+- Reads data from an Excel file (`Excel_File.xlsx`).
 - Automates login to the EMIS platform.
 - Navigates to the student enrollment section.
 - Iterates through each student record and fills in:
@@ -28,14 +28,14 @@ This script automates the process of filling out student enrollment forms on the
    pip install -r requirements.txt
    ```
 3. **ChromeDriver**: Download the appropriate version of ChromeDriver for your Chrome browser and ensure it matches your browser version. Update the path in the script (`chromedriver.exe`).
-4. **Excel File**: Place the `DOC-20240330-WA0009.xlsx` file in the same directory as the script. Ensure the file format and column headers match the expected format.
+4. **Excel File**: Place the `Excel_File.xlsx` file in the same directory as the script. Ensure the file format and column headers match the expected format.
 5. **Photos Directory**: Create a directory named `Photos` in the script's folder. Add student images named as `<GR NO>.jpg`.
 
 ---
 
 ### Setup
 1. Update the script with your EMIS login credentials:
-   - Replace `280103006` and `280103006-Mpk` with the appropriate username and password.
+   - Replace `Username` and `Password` with the appropriate username and password.
 2. Verify the paths for:
    - ChromeDriver (`driver_path`).
    - Excel file (`excel_file`).
