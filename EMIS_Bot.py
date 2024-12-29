@@ -10,6 +10,37 @@ from selenium.webdriver.chrome.service import Service  # Import Service class
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+import logging
+
+# Set up logging configuration
+logging.basicConfig(
+    filename='process_log.txt',
+    level=logging.ERROR,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+# Error codes for different types of failures
+ERROR_CODES = {
+    'LOGIN_FAILED': 'E001',
+    'NAVIGATION_FAILED': 'E002',
+    'EXCEL_READ_ERROR': 'E003',
+    'DROPDOWN_ERROR': 'E004',
+    'INPUT_ERROR': 'E005',
+    'DATE_FORMAT_ERROR': 'E006',
+    'ELEMENT_NOT_FOUND': 'E007',
+    'NETWORK_ERROR': 'E008',
+    'UNKNOWN_ERROR': 'E999'
+}
+
+def log_error(logger, error_code, message, gr_no=None):
+    """Utility function to log errors with consistent format"""
+    error_msg = f"[{error_code}] {message}"
+    if gr_no:
+        error_msg += f" (GR NO: {gr_no})"
+    logger.error(error_msg)
+    return error_msg
 
 ver = None  # To track the current GR NO
 
@@ -39,7 +70,7 @@ def fill_form_from_excel():
         driver.maximize_window()
         time.sleep(10)  # Wait for login to complete
     except Exception as e:
-        print(f"error in login: {e}")
+        log_error(logger, ERROR_CODES['LOGIN_FAILED'], f"Error in login: {e}")
     
     # Navigate to the enrollment section
     try:
@@ -47,7 +78,7 @@ def fill_form_from_excel():
         driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[2]/a").click()  # Select specific option
         time.sleep(5)  # Wait for page to load
     except Exception as e:
-        print(f"Error in navigation : {e}")
+        log_error(logger, ERROR_CODES['NAVIGATION_FAILED'], f"Error in navigation : {e}")
 
     # Iterate through rows in the Excel file
     for index, row in data.iterrows():
@@ -69,7 +100,7 @@ def fill_form_from_excel():
                 )
                 desired_option.click()
             except Exception as e:
-                 print(f'Error in dropdown: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in dropdown: {e}', ver)
 
             # Wait for the options to appear
             try:
@@ -81,26 +112,24 @@ def fill_form_from_excel():
                 formatted_date = timestamp.strftime('%m/%d/%Y')
                 driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));", da, formatted_date)
             except Exception as e:
-                 print(f'Error in  Date of admission: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in  Date of admission: {e}', ver)
             
             try:
                 gr = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[2]/mat-form-field/div/div[1]/div[3]/input")
                 gr.clear()
                 gr.send_keys(row["GR NO"])
             except Exception as e:
-                 print(f'Error in  GR: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in  GR: {e}', ver)
 
             try:
                 dropdownca = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-2")))
                 actions = ActionChains(driver)
                 actions.move_to_element(dropdownca).perform()
                 dropdownca.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Class Admitted']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Class Admitted']}']")))
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Current admission class: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Current admission class: {e}', ver)
 
             try:
                 dropdowncc = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-4")))
@@ -109,13 +138,11 @@ def fill_form_from_excel():
                 dropdowncc.click()
 
                 # Wait for the dropdown options to appear and select one by visible text
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Current Class']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Current Class']}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in  : {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in  : {e}', ver)
             
             try:
                 dropdownss = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-6")))
@@ -123,13 +150,11 @@ def fill_form_from_excel():
                 actions.move_to_element(dropdownss).perform()
                 dropdownss.click()
 
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Select Section']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Select Section']}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Select Section: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Select Section: {e}', ver)
 
             try:
                 dropdownm = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-8")))
@@ -137,13 +162,11 @@ def fill_form_from_excel():
                 actions.move_to_element(dropdownm).perform()
                 dropdownm.click()
 
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Medium']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Medium']}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Medium: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Medium: {e}', ver)
 
             try:
                 dropdowns = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-10")))
@@ -151,27 +174,25 @@ def fill_form_from_excel():
                 actions.move_to_element(dropdowns).perform()
                 dropdowns.click()
 
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Shift']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Shift']}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Shift: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Shift: {e}', ver)
 
             try:
                 sname = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[1]/mat-form-field/div/div[1]/div[3]/input")
                 sname.clear()
                 sname.send_keys(row["Students Name"])
             except Exception as e:
-                 print(f'Error in Students Name: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Students Name: {e}', ver)
 
             try:
                 ssname = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[2]/mat-form-field/div/div[1]/div[3]/input")
                 ssname.clear()
                 ssname.send_keys(row["Student Surname"])
             except Exception as e:
-                 print(f'Error in Student Surname: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Student Surname: {e}', ver)
 
             try:
                 bform = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[3]/mat-form-field/div/div[1]/div[3]/input")
@@ -179,7 +200,7 @@ def fill_form_from_excel():
                 if str(row["B-FORM"]) != "nan":
                     bform.send_keys(row["B-FORM"])
             except Exception as e:
-                 print(f'Error in B-FORM: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in B-FORM: {e}', ver)
             
             try:
                 dob =  driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[4]/mat-form-field/div/div[1]/div[3]/input")
@@ -190,20 +211,18 @@ def fill_form_from_excel():
                 formatted_date = timestamp.strftime('%m/%d/%Y')
                 driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));", dob, formatted_date)
             except Exception as e:
-                 print(f'Error in DOB: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in DOB: {e}', ver)
 
             try:
                 gender = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-12")))
                 actions = ActionChains(driver)
                 actions.move_to_element(gender).perform()
                 gender.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Gender']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Gender']}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Gender: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Gender: {e}', ver)
 
             try:
                 if row["Religion"] == 'Islam':
@@ -214,13 +233,11 @@ def fill_form_from_excel():
                 actions = ActionChains(driver)
                 actions.move_to_element(religion).perform()
                 religion.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Religion']}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row['Religion']}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Religion: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Religion: {e}', ver)
 
             try:
                 Disability = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-16")))
@@ -229,26 +246,22 @@ def fill_form_from_excel():
                 Disability.click()
                 if row["Disability"] == "No":
                     row["Disability"] == "NO"
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='NO']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='NO']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in Disability: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Disability: {e}', ver)
 
             try:
                 BloodGroup = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-18")))
                 actions = ActionChains(driver)
                 actions.move_to_element(BloodGroup).perform()
                 BloodGroup.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='N/A']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='N/A']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in BloodGroup: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in BloodGroup: {e}', ver)
 
             try:
                 MotherTongue = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-20")))
@@ -256,13 +269,11 @@ def fill_form_from_excel():
                 actions.move_to_element(MotherTongue).perform()
                 MotherTongue.click()
 
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Mother Tongue"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Mother Tongue"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                 print(f'Error in MotherTongue: {e}')
+                 log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in MotherTongue: {e}', ver)
 
             try:
                 ecname = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[10]/mat-form-field/div/div[1]/div[3]/input")
@@ -270,14 +281,14 @@ def fill_form_from_excel():
                 if str(row["Emergency Contact Name"]) != "nan":
                     ecname.send_keys(row["Emergency Contact Name"])
             except Exception as e:
-                 print(f'Error in  Emergency Contact Name: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in  Emergency Contact Name: {e}', ver)
 
             try:
                 ecno = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[11]/mat-form-field/div/div[1]/div[3]/input")
                 ecno.clear()
                 ecno.send_keys(row["Emergency Contact Number"])
             except Exception as e:
-                 print(f'Error in Emergency Contact Number: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Emergency Contact Number: {e}', ver)
 
             try:
                 image_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Photos") 
@@ -289,24 +300,22 @@ def fill_form_from_excel():
                         actions.move_to_element(upload_element).perform()
                         upload_element.send_keys(image_path)  # Upload image
                     except Exception as e: 
-                        print(f"Error uploading image for GR {row['GR NO']}: {e}")
+                        log_error(logger, ERROR_CODES['INPUT_ERROR'], f"Error uploading image for GR {row['GR NO']}: {e}", ver)
                 else:
-                    print(f"Image not found for GR {row['GR NO']}")
+                    log_error(logger, ERROR_CODES['INPUT_ERROR'], f"Image not found for GR {row['GR NO']}", ver)
             except Exception as e:
-                 print(f'Error in Image: {e}')
+                 log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Image: {e}', ver)
 
             try:
                 Region = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-22")))
                 actions = ActionChains(driver)
                 actions.move_to_element(Region).perform()
                 Region.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Region"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Region"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                print(f'Error in Region : {e}')
+                log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Region : {e}', ver)
 
             try:
                 District = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-24")))
@@ -314,86 +323,78 @@ def fill_form_from_excel():
                 actions.move_to_element(District).perform()
                 District.click()
 
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["District"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["District"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                print(f'Error in District: {e}')
+                log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in District: {e}', ver)
 
             try:
                 Taluka = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-26")))
                 actions = ActionChains(driver)
                 actions.move_to_element(Taluka).perform()
                 Taluka.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Taluka"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Taluka"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                print(f'Error in Taluka: {e}')
+                log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Taluka: {e}', ver)
 
             try:
                 UnionCoucil = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-28")))
                 actions = ActionChains(driver)
                 actions.move_to_element(UnionCoucil).perform()
                 UnionCoucil.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Union Coucil"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Union Coucil"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                print(f'Error in UnionCoucil: {e}')
+                log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in UnionCoucil: {e}', ver)
 
             try:
                 Area = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[3]/div/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/textarea")
                 Area.clear()
                 Area.send_keys(row["Cily/Village/Area"])
             except Exception as e:
-                print(f'Error in  Cily/Village/Area: {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in  Cily/Village/Area: {e}', ver)
 
             try:
                 add = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[3]/div/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/textarea")
                 add.clear()
                 add.send_keys(row["Address"])
             except Exception as e:
-                print(f'Error in Address: {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Address: {e}', ver)
 
             try:
                 Salutaion = wait.until(EC.element_to_be_clickable((By.ID, "mat-select-30")))
                 actions = ActionChains(driver)
                 actions.move_to_element(Salutaion).perform()
                 Salutaion.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Salutaion"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Salutaion"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                print(f'Error in Salutaion: {e}')
+                log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Salutaion: {e}', ver)
 
             try:
                 fname = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[1]/div[2]/mat-form-field/div/div[1]/div[3]/input")
                 fname.clear()
                 fname.send_keys(row["Name"])
             except Exception as e:
-                print(f'Error in Fname : {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Fname : {e}', ver)
             try:
                 Surname = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/input")
                 Surname.clear()
                 Surname.send_keys(row["Surname"])
             except Exception as e:
-                print(f'Error in FSurname : {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in FSurname : {e}', ver)
 
             try:
                 Cnic = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[2]/div[2]/mat-form-field/div/div[1]/div[3]/input")
                 Cnic.clear()
                 Cnic.send_keys(row["CNIC"])
             except Exception as e:
-                print(f'Error in CNIC: {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in CNIC: {e}', ver)
 
             try:
                 Mobile = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[3]/div[2]/mat-form-field/div/div[1]/div[3]/input")
@@ -401,7 +402,7 @@ def fill_form_from_excel():
                 if str(row["Mobile No"]) != 'nan':
                     Mobile.send_keys(row["Mobile No"])
             except Exception as e:
-                print(f'Error in Mobile: {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Mobile: {e}', ver)
 
             if row['Qualification'] == "Primary":
                 row['Qualification'] = "Matriculation"
@@ -413,20 +414,18 @@ def fill_form_from_excel():
                 actions = ActionChains(driver)
                 actions.move_to_element(Qualification).perform()
                 Qualification.click()
-                desired_option = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Qualification"]}']"
-                )))
+                desired_option = wait.until(EC.element_to_be_clickable((By.XPATH, f"//mat-option/span[normalize-space(text())='{row["Qualification"]}']")))
                 # desired_option.click()
                 driver.execute_script("arguments[0].click();", desired_option)
             except Exception as e:
-                print(f'Error in Qualification: {e}')
+                log_error(logger, ERROR_CODES['DROPDOWN_ERROR'], f'Error in Qualification: {e}', ver)
 
             try:
                 Occ = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[4]/div[2]/mat-form-field/div/div[1]/div[3]/input")
                 Occ.clear()
                 Occ.send_keys(row["Occupation"])
             except Exception as e:
-                print(f'Error in Occupation: {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Occupation: {e}', ver)
 
             try:
                 Summit = driver.find_element(By.XPATH, "/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/footer/div/div/button[1]")
@@ -434,7 +433,7 @@ def fill_form_from_excel():
                 actions.move_to_element(Qualification).perform()
                 # driver.execute_script("arguments[0].click();", Summit)
             except Exception as e:
-                print(f'Error in Summit: {e}')
+                log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Summit: {e}', ver)
 
             driver.execute_script("window.scrollTo(0, 0);")
             # Wait before moving to the next record
@@ -446,4 +445,4 @@ def fill_form_from_excel():
 try:
     fill_form_from_excel()
 except Exception as e:
-    print(f"Error: {e} at GR No . {ver}")
+    log_error(logger, ERROR_CODES['UNKNOWN_ERROR'], f"Error: {e} at GR No . {ver}")

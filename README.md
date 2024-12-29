@@ -42,6 +42,13 @@ This script automates the process of filling out student enrollment forms on the
 
 ---
 
+### Important Warning ⚠️
+- **DO NOT minimize or unfocus the Chrome window while the bot is running!** The bot requires the Chrome window to be visible and in focus at all times.
+- Minimizing or switching to another window may cause the bot to fail or input data incorrectly.
+- Keep the Chrome window visible and active throughout the entire process.
+
+---
+
 ### How to Run
 1. Open a terminal or command prompt.
 2. Navigate to the directory containing the script.
@@ -85,6 +92,25 @@ The Excel file should have the following columns:
 - `Mobile No`
 - `Qualification`
 - `Occupation`
+
+---
+
+### Error Codes Reference
+The script uses the following error codes for logging and troubleshooting:
+
+| Error Code | Description | Possible Causes/Solutions |
+|------------|-------------|-------------------------|
+| E001 | LOGIN_FAILED | - Invalid credentials<br>- Network connectivity issues<br>- EMIS portal unavailable |
+| E002 | NAVIGATION_FAILED | - Page elements changed<br>- Slow network connection<br>- Session timeout |
+| E003 | EXCEL_READ_ERROR | - Invalid Excel format<br>- Missing required columns<br>- Corrupted Excel file |
+| E004 | DROPDOWN_ERROR | - Invalid dropdown option<br>- Element not clickable<br>- Dynamic content not loaded |
+| E005 | INPUT_ERROR | - Invalid data format<br>- Required field missing<br>- Field validation failure |
+| E006 | DATE_FORMAT_ERROR | - Invalid date format in Excel<br>- Date parsing error<br>- Invalid date range |
+| E007 | ELEMENT_NOT_FOUND | - Page structure changed<br>- Element not loaded<br>- Invalid XPath |
+| E008 | NETWORK_ERROR | - Internet connection issues<br>- Server timeout<br>- API failure |
+| E999 | UNKNOWN_ERROR | - Unexpected exceptions<br>- System-level errors<br>- Unhandled edge cases |
+
+All errors are logged to `process_log.txt` with timestamps and detailed error messages.
 
 ---
 

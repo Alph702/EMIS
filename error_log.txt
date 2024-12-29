@@ -1,0 +1,31 @@
+Error Code Reference Guide for EMIS Bot
+
+E001 - LOGIN_FAILED
+      Description: Authentication failure when attempting to log into the EMIS system
+
+E002 - NAVIGATION_FAILED
+      Description: Failed to navigate to a specific page or section in the EMIS portal
+
+E003 - EXCEL_READ_ERROR
+      Description: Error occurred while reading or processing the Excel input file
+
+E004 - DROPDOWN_ERROR
+      Description: Failed to interact with or select options from dropdown menus
+
+E005 - INPUT_ERROR
+      Description: Error occurred while entering data into form fields
+
+E006 - DATE_FORMAT_ERROR
+      Description: Invalid date format or date processing error
+
+E007 - ELEMENT_NOT_FOUND
+      Description: Required web element not found on the page
+
+E008 - NETWORK_ERROR
+      Description: Network connectivity issues or server response problems
+
+E999 - UNKNOWN_ERROR
+      Description: Unclassified or unexpected errors
+
+Note: When errors occur, they will be logged with the format:
+[ERROR_CODE] Error Message (GR NO: student_number)
