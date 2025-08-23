@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import Config
 import pandas as pd
@@ -76,6 +77,39 @@ def upload_image(page, gr_no, error_code):
     except Exception as e:
         log_error(logger, error_code, f'Error in Image: {e}', gr_no)
 
+def navigate_to(page, option: str, error_code, gr_no):
+    """Navigate to a specific section in the EMIS portal."""
+    try:
+        page.click("xpath=//html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/a")
+        if option == "Add Student":
+            page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[2]/a")
+            page.wait_for_timeout(3000)
+        elif option == "Student List":
+            page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[1]/a")
+            page.wait_for_timeout(3000)
+    except Exception as e:
+        log_error(logger, error_code, f"Error in navigation: {e}", gr_no)
+
+def select_student_by_gr(page, gr_no, error_code):
+    """Select a student from the list by GR NO."""
+    try:
+        # navigate to student list
+        navigate_to(page, "Student List", ERROR_CODES['NAVIGATION_FAILED'], gr_no)
+        fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-all-students/section/div/div[2]/div/div/div/div/div/div/div[1]/div/div[1]/ul/li[2]/input", gr_no, ERROR_CODES['INPUT_ERROR'], "Search", gr_no)
+        page.wait_for_timeout(100)
+        page.click("xpath=/html/body/app-root/app-main-layout/div/app-all-students/section/div/div[2]/div/div/div/div/div/div/div[1]/div/div[1]/ul/li[3]/div/button")
+        page.wait_for_timeout(2000)
+        # Build exact regex pattern
+        pattern = re.compile(rf"^\s*{str(gr_no)}\s*$")
+
+        # Find the GR cell with exact match
+        gr_cell = page.locator("mat-cell.cdk-column-grNo").filter(has_text=pattern)
+
+        student = gr_cell.locator("xpath=ancestor::mat-row")
+        student.locator("button[mat-icon-button]").nth(0).click()
+    except Exception as e:
+        log_error(logger, error_code, f"Error selecting student with GR NO {gr_no}: {e}", gr_no)
+
 # --- Main Form Filling Logic ---
 def fill_form_from_excel():
     ver = None
@@ -100,20 +134,12 @@ def fill_form_from_excel():
             browser.close()
             return
 
-        # --- Navigate to Enrollment Section ---
-        try:
-            page.click("xpath=//html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/a")
-            page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[2]/a")
-            page.wait_for_timeout(5000)
-        except Exception as e:
-            log_error(logger, ERROR_CODES['NAVIGATION_FAILED'], f"Error in navigation: {e}")
-            browser.close()
-            return
-
         # --- Iterate Through Excel Rows ---
         for index, row in data.iterrows():
             ver = row["GR NO"]
             if row["Admission Type"] == "New Admission":
+                # --- Navigate to Enrollment Section ---
+                navigate_to(page, "Add Student", ERROR_CODES['NAVIGATION_FAILED'], ver)
                 # --- Admission Details ---
                 select_dropdown(page, "mat-select-0", "New Admission", ERROR_CODES['DROPDOWN_ERROR'], "Admission Type", ver)
                 fill_date(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/input", row["Admission Date"], ERROR_CODES['INPUT_ERROR'], "Admission Date", ver)
@@ -162,11 +188,11 @@ def fill_form_from_excel():
                 select_dropdown(page, "mat-select-32", qualification_value, ERROR_CODES['DROPDOWN_ERROR'], "Qualification", ver)
 
                 # --- Submit Form ---
-                try:
-                    page.click("xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/footer/div/div/button[1]")
-                    time.sleep(1)
-                except Exception as e:
-                    log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Submit: {e}', ver)
+                # try:
+                #     page.click("xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/footer/div/div/button[1]")
+                #     time.sleep(1)
+                # except Exception as e:
+                #     log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Submit: {e}', ver)
 
                 # --- Prepare for Next Record ---
                 time.sleep(2)
@@ -176,6 +202,22 @@ def fill_form_from_excel():
                 page.click("xpath=//html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/a")
                 page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[2]/a")
                 page.wait_for_timeout(2000)
+            
+            elif row["Admission Type"] == "Promoted":
+                # --- Promotion Logic Here ---
+                # Select student by GR NO
+                select_student_by_gr(page, ver, ERROR_CODES['INPUT_ERROR'])
+
+                time.sleep(5)
+                pass
+            elif row["Admission Type"] == "Retained":
+                pass
+            elif row["Admission Type"] == "Passout":
+                pass
+            elif row["Admission Type"] == "Dropout":
+                pass
+            elif row["Admission Type"] == "TC":
+                pass
 
         browser.close()
 
