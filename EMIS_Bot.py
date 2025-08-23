@@ -251,6 +251,7 @@ def fill_form_from_excel():
                         log_error(logger, ERROR_CODES['INPUT_ERROR'], f"Image not found for GR {row['GR NO']}", ver)
                 except Exception as e:
                     log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Image: {e}', ver)
+                
 
                 # Fill Region
                 try:
@@ -357,14 +358,24 @@ def fill_form_from_excel():
 
                 # Submit button (commented out as in original)
                 try:
-                    # You would usually click this: page.click("xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/footer/div/div/button[1]")
-                    pass
+                    # pass
+                    page.click("xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/footer/div/div/button[1]")
+                    time.sleep(1)  # Wait for the form to submit
+
                 except Exception as e:
                     log_error(logger, ERROR_CODES['INPUT_ERROR'], f'Error in Summit: {e}', ver)
 
-                page.evaluate("window.scrollTo(0, 0);")
+                # page.evaluate("window.scrollTo(0, 0);")
+                # page.goto(form_url)  # Navigate to the login page
+                # page.wait_for_timeout(2000)  # Allow page to load
+                time.sleep(2)  # Wait for the form to submit
+                page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[3]/a")  # Open dropdown
+                page.wait_for_timeout(5000)
+                page.reload()
+                page.click("xpath=//html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/a")  # Open dropdown
+                page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[2]/a")  # Select specific option
+                page.wait_for_timeout(2000)  # Wait for page to load
                 # Wait before moving to the next record
-                page.wait_for_timeout(500)
 
         browser.close()
 
