@@ -5,6 +5,7 @@ import Config
 import pandas as pd
 from playwright.sync_api import sync_playwright
 import logging
+import pyttsx3  # TTS engine
 
 # --- Logging Setup ---
 logging.basicConfig(
@@ -15,6 +16,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# --- TTS Setup ---
+tts_engine = pyttsx3.init()
+tts_engine.setProperty('rate', 170)  # Optional: adjust speech rate
+
+def speak_error(message):
+    """Speak the error message using TTS."""
+    try:
+        tts_engine.say(message)
+        tts_engine.runAndWait()
+    except Exception:
+        pass  # Avoid TTS errors interfering with main flow
+
 ERROR_CODES = {
     'LOGIN_FAILED': 'E001',
     'NAVIGATION_FAILED': 'E002',
@@ -24,25 +37,45 @@ ERROR_CODES = {
     'DATE_FORMAT_ERROR': 'E006',
     'ELEMENT_NOT_FOUND': 'E007',
     'NETWORK_ERROR': 'E008',
-    'UNKNOWN_ERROR': 'E999'
+    'UNKNOWN_ERROR': 'E999',
+    'IMAGE_UPLOAD_ERROR': 'E009',
+    'STUDENT_SELECT_ERROR': 'E010',
+    'STATUS_TAB_ERROR': 'E011',
+    'SUBMIT_FORM_ERROR': 'E012',
+    'SECTION_SELECT_ERROR': 'E013',
+    'QUALIFICATION_ERROR': 'E014',
+    'ADDRESS_ERROR': 'E015',
+    'CONFIG_ERROR': 'E016',
+    'TTS_ERROR': 'E017',
+    'BROWSER_ERROR': 'E018',
+    'DATA_PARSE_ERROR': 'E019',
+    'RELOAD_ERROR': 'E020'
 }
 
 def log_error(logger, error_code, message, gr_no=None):
-    """Log errors with consistent format."""
+    """Log errors with consistent format and speak them."""
     error_msg = f"[{error_code}] {message}"
     if gr_no:
         error_msg += f" (GR NO: {gr_no})"
     logger.error(error_msg)
+    speak_error(error_msg)  # Speak error after logging
     return error_msg
 
 # --- Helper Functions ---
-def select_dropdown(page, element_id, value, error_code, field_name, gr_no):
+def select_dropdown(page, element_id, value, error_code, field_name, gr_no, Type="ID"):
     """Select an option from a dropdown by visible text."""
+    
     try:
-        page.click(f"id={element_id}")
-        page.click(f"xpath=//mat-option/span[normalize-space(text())='{value}']")
+        if Type == "ID":
+            page.click(f"id={element_id}")
+            page.click(f"xpath=//mat-option/span[normalize-space(text())='{value}']")
+        elif Type == "TEXT":
+            status_label = page.locator(f"xpath=//mat-label[contains(., '{field_name}')]")
+            status_select = status_label.locator("xpath=ancestor::mat-form-field//mat-select")
+            status_select.click()
+            page.click(f"xpath=//mat-option/span[normalize-space(text())='{value}']")
     except Exception as e:
-        log_error(logger, error_code, f'Error in {field_name}: {e}', gr_no)
+        log_error(logger, error_code, f'Error in {field_name}: {e} by using Type {Type}', gr_no)
 
 def fill_input(page, xpath, value, error_code, field_name, gr_no, is_int=False):
     """Fill an input field if value is not NaN."""
@@ -110,6 +143,18 @@ def select_student_by_gr(page, gr_no, error_code):
     except Exception as e:
         log_error(logger, error_code, f"Error selecting student with GR NO {gr_no}: {e}", gr_no)
 
+def Go_to_edit_Status(page, error_code, gr_no):
+    """Navigate to the Status tab of the selected student."""
+    try:
+        page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/mat-tab-header/div/div/div/div[3]/div")
+        page.wait_for_timeout(2000)
+
+        # Click 'Change Status' button
+        page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/div/mat-tab-body[3]/div/div/div/student-academic-year-status/div/div[1]/div[2]/div/button")
+        page.wait_for_timeout(2000)
+    except Exception as e:
+        log_error(logger, error_code, f"Error navigating to Status tab: {e}", gr_no)
+
 # --- Main Form Filling Logic ---
 def fill_form_from_excel():
     ver = None
@@ -141,11 +186,11 @@ def fill_form_from_excel():
                 # --- Navigate to Enrollment Section ---
                 navigate_to(page, "Add Student", ERROR_CODES['NAVIGATION_FAILED'], ver)
                 # --- Admission Details ---
-                select_dropdown(page, "mat-select-0", "New Admission", ERROR_CODES['DROPDOWN_ERROR'], "Admission Type", ver)
-                fill_date(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/input", row["Admission Date"], ERROR_CODES['INPUT_ERROR'], "Admission Date", ver)
-                fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[2]/mat-form-field/div/div[1]/div[3]/input", row["GR NO"], ERROR_CODES['INPUT_ERROR'], "GR NO", ver)
-                select_dropdown(page, "mat-select-2", row['Class Admitted'], ERROR_CODES['DROPDOWN_ERROR'], "Class Admitted", ver)
-                select_dropdown(page, "mat-select-4", row['Current Class'], ERROR_CODES['DROPDOWN_ERROR'], "Current Class", ver)
+                select_dropdown(page, "mat-select-0", "New Admission", ERROR_CODES['DROPDOWN_ERROR'], "Admission Type", ver) 
+                fill_date(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/input", row["Admission Date"], ERROR_CODES['DATE_FORMAT_ERROR'], "Admission Date", ver)
+                fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[1]/div/div/div[2]/div/div[2]/div[2]/mat-form-field/div/div[1]/div[3]/input", row["GR NO"], ERROR_CODES['INPUT_ERROR'], "GR NO", ver) 
+                select_dropdown(page, "mat-select-2", row['Class Admitted'], ERROR_CODES['DROPDOWN_ERROR'], "Class Admitted", ver) 
+                select_dropdown(page, "mat-select-4", row['Current Class'], ERROR_CODES['DROPDOWN_ERROR'], "Current Class", ver) 
                 select_dropdown(page, "mat-select-6", row['Select Section'], ERROR_CODES['DROPDOWN_ERROR'], "Select Section", ver)
                 select_dropdown(page, "mat-select-8", row['Medium'], ERROR_CODES['DROPDOWN_ERROR'], "Medium", ver)
                 select_dropdown(page, "mat-select-10", row['Shift'], ERROR_CODES['DROPDOWN_ERROR'], "Shift", ver)
@@ -153,30 +198,30 @@ def fill_form_from_excel():
                 # --- Student Details ---
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[1]/mat-form-field/div/div[1]/div[3]/input", row["Students Name"], ERROR_CODES['INPUT_ERROR'], "Students Name", ver)
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[2]/mat-form-field/div/div[1]/div[3]/input", row["Student Surname"], ERROR_CODES['INPUT_ERROR'], "Student Surname", ver)
-                fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[3]/mat-form-field/div/div[1]/div[3]/input", row["B-FORM"], ERROR_CODES['INPUT_ERROR'], "B-FORM", ver, is_int=True)
-                fill_date(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[4]/mat-form-field/div/div[1]/div[3]/input", row["Date Of Birth"], ERROR_CODES['INPUT_ERROR'], "Date Of Birth", ver)
-                select_dropdown(page, "mat-select-12", row['Gender'], ERROR_CODES['DROPDOWN_ERROR'], "Gender", ver)
+                fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[3]/mat-form-field/div/div[1]/div[3]/input", row["B-FORM"], ERROR_CODES['INPUT_ERROR'], "B-FORM", ver, is_int=True) 
+                fill_date(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[4]/mat-form-field/div/div[1]/div[3]/input", row["Date Of Birth"], ERROR_CODES['DATE_FORMAT_ERROR'], "Date Of Birth", ver)
+                select_dropdown(page, "mat-select-12", row['Gender'], ERROR_CODES['DROPDOWN_ERROR'], "Gender", ver) 
                 religion_value = "Muslim" if row["Religion"] == 'Islam' else "Non Muslim"
-                select_dropdown(page, "mat-select-14", religion_value, ERROR_CODES['DROPDOWN_ERROR'], "Religion", ver)
+                select_dropdown(page, "mat-select-14", religion_value, ERROR_CODES['DROPDOWN_ERROR'], "Religion", ver) 
                 disability_value = "NO" if str(row["Disability"]).lower() == "no" else str(row["Disability"])
-                select_dropdown(page, "mat-select-16", disability_value, ERROR_CODES['DROPDOWN_ERROR'], "Disability", ver)
+                select_dropdown(page, "mat-select-16", disability_value, ERROR_CODES['DROPDOWN_ERROR'], "Disability", ver) 
                 blood_group_value = "N/A" if pd.isna(row['Blood Group']) else str(row['Blood Group'])
-                select_dropdown(page, "mat-select-18", blood_group_value, ERROR_CODES['DROPDOWN_ERROR'], "Blood Group", ver)
-                select_dropdown(page, "mat-select-20", row['Mother Tongue'], ERROR_CODES['DROPDOWN_ERROR'], "Mother Tongue", ver)
+                select_dropdown(page, "mat-select-18", blood_group_value, ERROR_CODES['DROPDOWN_ERROR'], "Blood Group", ver) 
+                select_dropdown(page, "mat-select-20", row['Mother Tongue'], ERROR_CODES['DROPDOWN_ERROR'], "Mother Tongue", ver) 
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[10]/mat-form-field/div/div[1]/div[3]/input", row["Emergency Contact Name"], ERROR_CODES['INPUT_ERROR'], "Emergency Contact Name", ver)
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[2]/div/div/div[2]/div[1]/div[11]/mat-form-field/div/div[1]/div[3]/input", row["Emergency Contact Number"], ERROR_CODES['INPUT_ERROR'], "Emergency Contact Number", ver, is_int=True)
-                upload_image(page, ver, ERROR_CODES['INPUT_ERROR'])
+                upload_image(page, ver, ERROR_CODES['IMAGE_UPLOAD_ERROR'])
 
                 # --- Location Details ---
-                select_dropdown(page, "mat-select-22", row['Region'], ERROR_CODES['DROPDOWN_ERROR'], "Region", ver)
-                select_dropdown(page, "mat-select-24", row['District'], ERROR_CODES['DROPDOWN_ERROR'], "District", ver)
-                select_dropdown(page, "mat-select-26", row['Taluka'], ERROR_CODES['DROPDOWN_ERROR'], "Taluka", ver)
-                select_dropdown(page, "mat-select-28", row['Union Coucil'], ERROR_CODES['DROPDOWN_ERROR'], "Union Coucil", ver)
+                select_dropdown(page, "mat-select-22", row['Region'], ERROR_CODES['DROPDOWN_ERROR'], "Region", ver) 
+                select_dropdown(page, "mat-select-24", row['District'], ERROR_CODES['DROPDOWN_ERROR'], "District", ver) 
+                select_dropdown(page, "mat-select-26", row['Taluka'], ERROR_CODES['DROPDOWN_ERROR'], "Taluka", ver) 
+                select_dropdown(page, "mat-select-28", row['Union Coucil'], ERROR_CODES['DROPDOWN_ERROR'], "Union Coucil", ver) 
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[3]/div/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/textarea", row["Cily/Village/Area"], ERROR_CODES['INPUT_ERROR'], "Cily/Village/Area", ver)
-                fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[3]/div/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/textarea", row["Address"], ERROR_CODES['INPUT_ERROR'], "Address", ver)
+                fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[3]/div/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/textarea", row["Address"], ERROR_CODES['ADDRESS_ERROR'], "Address", ver)
 
                 # --- Father's Details ---
-                select_dropdown(page, "mat-select-30", row['Salutaion'], ERROR_CODES['DROPDOWN_ERROR'], "Salutaion", ver)
+                select_dropdown(page, "mat-select-30", row['Salutaion'], ERROR_CODES['DROPDOWN_ERROR'], "Salutaion", ver) 
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[1]/div[2]/mat-form-field/div/div[1]/div[3]/input", row["Name"], ERROR_CODES['INPUT_ERROR'], "Father's Name", ver)
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[2]/div[1]/mat-form-field/div/div[1]/div[3]/input", row["Surname"], ERROR_CODES['INPUT_ERROR'], "Father's Surname", ver)
                 fill_input(page, "xpath=/html/body/app-root/app-main-layout/div/app-add-student/section/div/div[2]/div/div/div[2]/form/div[5]/div/div/div[2]/div/div[2]/div[2]/mat-form-field/div/div[1]/div[3]/input", row["CNIC"], ERROR_CODES['INPUT_ERROR'], "CNIC", ver, is_int=True)
@@ -185,7 +230,7 @@ def fill_form_from_excel():
 
                 # --- Qualification ---
                 qualification_value = "Matriculation" if row['Qualification'] in ["Primary", "Matric"] else row['Qualification']
-                select_dropdown(page, "mat-select-32", qualification_value, ERROR_CODES['DROPDOWN_ERROR'], "Qualification", ver)
+                select_dropdown(page, "mat-select-32", qualification_value, ERROR_CODES['QUALIFICATION_ERROR'], "Qualification", ver)
 
                 # --- Submit Form ---
                 # try:
@@ -204,20 +249,78 @@ def fill_form_from_excel():
                 page.wait_for_timeout(2000)
             
             elif row["Admission Type"] == "Promoted":
-                # --- Promotion Logic Here ---
+                # Select student by GR NO
+                select_student_by_gr(page, ver, ERROR_CODES['STUDENT_SELECT_ERROR'])
+
+                # Navigate to Status
+                Go_to_edit_Status(page, ERROR_CODES['STATUS_TAB_ERROR'], ver)
+
+                # Select 'Promoted' status from dropdown
+                select_dropdown(page, None, "Promoted", ERROR_CODES['DROPDOWN_ERROR'], "Status", ver, "TEXT")
+
+                # Select new section from dropdown
+                select_dropdown(page, None, row['Select Section'], ERROR_CODES['DROPDOWN_ERROR'], "Section", ver, "TEXT")
+
+                # Click 'Add Status' button to confirm promotion
+                page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/div/mat-tab-body[3]/div/div/div/student-academic-year-status/div/div[2]/div/button[1]")
+            
+            elif row["Admission Type"] == "Retained":
+                # Select student by GR NO
+                select_student_by_gr(page, ver, ERROR_CODES['STUDENT_SELECT_ERROR'])
+
+                # Navigate to Status tab
+                Go_to_edit_Status(page, ERROR_CODES['STATUS_TAB_ERROR'], ver)
+
+                # Select 'Retained' status
+                select_dropdown(page, None, "Retained", ERROR_CODES['DROPDOWN_ERROR'], "Status", ver, "TEXT")
+
+                # Select new section
+                select_dropdown(page, None, row['Select Section'], ERROR_CODES['DROPDOWN_ERROR'], "Section", ver, "TEXT")
+
+                # Click 'Add Status' button
+                page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/div/mat-tab-body[3]/div/div/div/student-academic-year-status/div/div[2]/div/button[1]")
+
+            elif row["Admission Type"] == "Passout":
                 # Select student by GR NO
                 select_student_by_gr(page, ver, ERROR_CODES['INPUT_ERROR'])
 
-                time.sleep(5)
-                pass
-            elif row["Admission Type"] == "Retained":
-                pass
-            elif row["Admission Type"] == "Passout":
-                pass
+                # Navigate to Status tab
+                Go_to_edit_Status(page, ERROR_CODES['NAVIGATION_FAILED'], ver)
+
+                # Select 'Passout' status
+                select_dropdown(page, None, "Passout", ERROR_CODES['DROPDOWN_ERROR'], "Status", ver, "TEXT")
+
+                # Click 'Add Status' button
+                page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/div/mat-tab-body[3]/div/div/div/student-academic-year-status/div/div[2]/div/button[1]") 
+            
             elif row["Admission Type"] == "Dropout":
-                pass
+                # Select student by GR NO
+                select_student_by_gr(page, ver, ERROR_CODES['STUDENT_SELECT_ERROR'])
+
+                # Navigate to Status tab
+                Go_to_edit_Status(page, ERROR_CODES['STATUS_TAB_ERROR'], ver)
+
+                # Select 'Dropout' status
+                select_dropdown(page, None, "Dropout", ERROR_CODES['DROPDOWN_ERROR'], "Status", ver, "TEXT")
+
+                # Select dropout reason
+                select_dropdown(page, None, "Student is not punctual", ERROR_CODES['DROPDOWN_ERROR'], "Reason", ver, "TEXT")
+
+                # Click 'Add Status' button
+                page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/div/mat-tab-body[3]/div/div/div/student-academic-year-status/div/div[2]/div/button[1]")
+                
             elif row["Admission Type"] == "TC":
-                pass
+                # Select student by GR NO
+                select_student_by_gr(page, ver, ERROR_CODES['STUDENT_SELECT_ERROR'])
+
+                # Navigate to Status tab
+                Go_to_edit_Status(page, ERROR_CODES['STATUS_TAB_ERROR'], ver)
+
+                # Select 'TC' status
+                select_dropdown(page, None, "TC", ERROR_CODES['DROPDOWN_ERROR'], "Status", ver, "TEXT")
+
+                # Click 'Add Status' button
+                page.click("xpath=/html/body/app-root/app-main-layout/div/app-about-student/section/div/div[2]/div[3]/div/mat-tab-group/div/mat-tab-body[3]/div/div/div/student-academic-year-status/div/div[2]/div/button[1]")
 
         browser.close()
 
