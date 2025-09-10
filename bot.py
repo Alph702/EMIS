@@ -259,9 +259,6 @@ def _fill_form_sync(data, Username: str, Password: str):
                     page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[3]/a")
                     page.wait_for_timeout(3000)
                     page.reload()
-                    page.click("xpath=//html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/a")
-                    page.click("xpath=/html/body/app-root/app-main-layout/app-sidebar/div/aside/div/ul/li[5]/ul/li[2]/a")
-                    page.wait_for_timeout(2000)
                 
                 elif row["Admission Type"] == "Promoted":
                     # Select student by GR NO
