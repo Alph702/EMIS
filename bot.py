@@ -1,7 +1,6 @@
 import os
 import re
 import time
-import Config
 import pandas as pd
 from playwright.sync_api import sync_playwright, Page, expect
 import logging

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from bot import fill_form_from_excel
 import io
+import os
 
 df = pd.read_excel("data/template.xlsx")
 
@@ -29,9 +30,22 @@ if uploaded_file is not None:
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
+    photos = st.file_uploader(
+        "Upload images", accept_multiple_files=True, type=["jpg", "png"]
+    )
+
+    if photos:
+        save_dir = "Photos"
+        os.makedirs(save_dir, exist_ok=True)
+        for photo in photos:
+            save_path = os.path.join(save_dir, photo.name)
+            with open(save_path, "wb") as f:
+                f.write(photo.getbuffer())
+        st.success(f"Saved {len(photos)} file(s) to: {save_dir}")
+
     if st.button("Run"):
         try:
             fill_form_from_excel(data, username, password)
             st.success("Form filling process completed successfully!")
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"An error occurred {e}")
