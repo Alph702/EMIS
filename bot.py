@@ -5,6 +5,7 @@ import Config
 import pandas as pd
 from playwright.sync_api import sync_playwright, Page, expect
 import logging
+import multiprocessing
 
 # --- Logging Setup ---
 logging.basicConfig(
@@ -68,7 +69,6 @@ def select_mat_option_by_label(page: Page, label: str, value: str):
 
     # Verify the combobox now shows the chosen value
     expect(combobox).to_have_text(value)
-
 
 def select_dropdown(page, element_id, value, error_code, field_name, gr_no, Type="ID"):
     """Select an option from a dropdown by visible text."""
@@ -171,11 +171,8 @@ def Go_to_edit_Status(page, error_code, gr_no):
         log_error(logger, error_code, f"Error navigating to Status tab: {e}", gr_no)
         raise
 
-# --- Main Form Filling Logic ---
-def fill_form_from_excel():
+def _fill_form_sync(data, Username: str, Password: str):
     ver = None
-    excel_file = Config.excel_file
-    data = pd.read_excel(excel_file)
     data.columns = data.columns.str.strip()
 
     with sync_playwright() as p:
@@ -186,8 +183,8 @@ def fill_form_from_excel():
         try:
             page.goto("https://emis.sef.edu.pk/")
             page.wait_for_timeout(2000)
-            page.fill("xpath=/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input", Config.Username)
-            page.fill("xpath=/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input", Config.Password)
+            page.fill("xpath=/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[1]/div/mat-form-field/div/div[1]/div[3]/input", Username)
+            page.fill("xpath=/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[2]/div/mat-form-field/div/div[1]/div[3]/input", Password)
             page.click("xpath=/html/body/app-root/app-auth-layout/app-signin/div/div/div[2]/div/div/form/div[3]/div/button")
             page.wait_for_timeout(10000)
         except Exception as e:
@@ -347,9 +344,15 @@ def fill_form_from_excel():
                 continue  # Skip this GR NO and continue to next
         browser.close()
 
+# --- Main Form Filling Logic ---
+def fill_form_from_excel(data, Username, Password):
+    process = multiprocessing.Process(target=_fill_form_sync, args=(data, Username, Password))
+    process.start()
+    process.join()
+
 # --- Entry Point ---
 if __name__ == '__main__':
     try:
-        fill_form_from_excel()
+        multiprocessing.freeze_support()
     except Exception as e:
         log_error(logger, ERROR_CODES['UNKNOWN_ERROR'], f"Error: {e}", None)
