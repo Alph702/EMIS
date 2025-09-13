@@ -4,3 +4,4 @@ Photos/*
 __pycache__/
 *.ipynb
 GEMINI.md
+process_log.txt

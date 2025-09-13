@@ -1,1 +1,0 @@
-2025-09-13 16:58:32 - ERROR - [E001] Error in login: Page.wait_for_timeout: Target page, context or browser has been closed
