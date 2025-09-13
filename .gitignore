@@ -3,3 +3,4 @@ Photos/*
 .venv/
 __pycache__/
 *.ipynb
+GEMINI.md
